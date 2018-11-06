@@ -2,6 +2,11 @@ import numpy as np
 
 
 def generate_task(num):
+    """
+    создание матрицы расстояний
+    :param num: количество городов
+    :return:
+    """
     out = np.random.sample((num, num))
     for i in range(num):
         out[i][i] = np.float('inf')
@@ -36,6 +41,34 @@ class TSP:
         left_matrix = np.array([[self.matrix[j][i] for i in left] for j in left])
         return sum(left_matrix.min(axis=1))
 
+    def __staff_matrix__(self):
+        """
+        матрица С"
+        список координат с нулями и разность
+        """
+        self.new_matrix = self.matrix
+        self.nulls = []
+        m1 = self.new_matrix.min(axis=1)
+        for i in range(self.num_of_towns):
+            for j in range(self.num_of_towns):
+                self.new_matrix[i][j] -= m1[i]
+        m0 = self.new_matrix.min(axis=0)
+        for i in range(self.num_of_towns):
+            for j in range(self.num_of_towns):
+                self.new_matrix[i][j] -= m0[j]
+                if self.new_matrix[i][j] == 0:
+                    self.nulls.append((i, j))
+        self.minuses = sum(m0)+sum(m1)
+
+    def __variants__(self):
+        now = (None, 0)
+        for i in self.nulls:
+            res = min(self.new_matrix[:][i[1]]) + min(self.new_matrix[i[0]][:])
+            if now[1] < res:
+                now = (i, res)
+
+        return
+
     def f(self, s):
         """
         целевая функция
@@ -58,3 +91,4 @@ if __name__ == '__main__':
     t = TSP(matrix.reshape((5, 5)), 5)
     print(t.__high_bound__([0, 1, 2, 3, 4]))
     print(t.__lower_bound__([0, 1, 2, 3, 4]))
+    print(t.__staff_matrix__())
