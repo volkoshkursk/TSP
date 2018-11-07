@@ -21,6 +21,7 @@ class TSP:
     def __init__(self, matrix, num_of_towns):
         self.matrix = matrix
         self.num_of_towns = num_of_towns
+        self.s = []
 
     def __high_bound__(self, left):
         """
@@ -30,7 +31,7 @@ class TSP:
         """
         s = [i for i in left]
         s.append(0)
-        return self.f(s)
+        self.high = self.f(s)
 
     def __lower_bound__(self, left):
         """
@@ -39,7 +40,7 @@ class TSP:
         :return:
         """
         left_matrix = np.array([[self.matrix[j][i] for i in left] for j in left])
-        return sum(left_matrix.min(axis=1))
+        self.lower = sum(left_matrix.min(axis=1))
 
     def __staff_matrix__(self):
         """
@@ -63,11 +64,23 @@ class TSP:
     def __variants__(self):
         now = (None, 0)
         for i in self.nulls:
-            res = min(self.new_matrix[:][i[1]]) + min(self.new_matrix[i[0]][:])
+            res = min(np.concatenate((self.new_matrix[:i[0], i[1]],  self.new_matrix[i[0]+1:, i[1]]))) + \
+                  min(np.concatenate((self.new_matrix[i[0], :i[1]], self.new_matrix[i[0], i[1]+1:])))
             if now[1] < res:
                 now = (i, res)
-
-        return
+        h1 = 0
+        h2 = 0
+        for i in range(self.num_of_towns):
+            if self.new_matrix[i][now[0][1]] != np.float('inf'):
+                h1 += self.new_matrix[i][now[0][1]]
+            if self.new_matrix[now[0][0]][i] != np.float('inf'):
+                h2 += self.new_matrix[now[0][0]][i]
+        if self.lower < (self.minuses + now[1]):
+            self.s.append(now[0])
+            for i in range(self.num_of_towns):
+                self.matrix[i][now[0][1]] = np.float('inf')
+                self.matrix[now[0][0]][i] = np.float('inf')
+            self.matrix[now[0][0]][now[0][1]] = np.float('inf')
 
     def f(self, s):
         """
@@ -92,3 +105,5 @@ if __name__ == '__main__':
     print(t.__high_bound__([0, 1, 2, 3, 4]))
     print(t.__lower_bound__([0, 1, 2, 3, 4]))
     print(t.__staff_matrix__())
+    t.__variants__()
+    print()
