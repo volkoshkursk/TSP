@@ -47,40 +47,40 @@ class TSP:
         матрица С"
         список координат с нулями и разность
         """
-        self.new_matrix = self.matrix
-        self.nulls = []
-        m1 = self.new_matrix.min(axis=1)
+        new_matrix = self.matrix
+        nulls = []
+        m1 = new_matrix.min(axis=1)
         for i in range(self.num_of_towns):
             for j in range(self.num_of_towns):
-                self.new_matrix[i][j] -= m1[i]
-        m0 = self.new_matrix.min(axis=0)
+                new_matrix[i][j] -= m1[i]
+        m0 = new_matrix.min(axis=0)
         for i in range(self.num_of_towns):
             for j in range(self.num_of_towns):
-                self.new_matrix[i][j] -= m0[j]
-                if self.new_matrix[i][j] == 0:
-                    self.nulls.append((i, j))
-        self.minuses = sum(m0)+sum(m1)
+                new_matrix[i][j] -= m0[j]
+                if new_matrix[i][j] == 0:
+                    nulls.append((i, j))
+        return new_matrix, nulls, sum(m0)+sum(m1)
 
-    def __variants__(self):
+    def __variants__(self, new_matrix, nulls, minuses):
         now = (None, 0)
-        for i in self.nulls:
-            res = min(np.concatenate((self.new_matrix[:i[0], i[1]],  self.new_matrix[i[0]+1:, i[1]]))) + \
-                  min(np.concatenate((self.new_matrix[i[0], :i[1]], self.new_matrix[i[0], i[1]+1:])))
+        for i in nulls:
+            res = min(np.concatenate((new_matrix[:i[0], i[1]],  new_matrix[i[0]+1:, i[1]]))) + \
+                  min(np.concatenate((new_matrix[i[0], :i[1]], new_matrix[i[0], i[1]+1:])))
             if now[1] < res:
                 now = (i, res)
         h1 = 0
         h2 = 0
         for i in range(self.num_of_towns):
-            if self.new_matrix[i][now[0][1]] != np.float('inf'):
-                h1 += self.new_matrix[i][now[0][1]]
-            if self.new_matrix[now[0][0]][i] != np.float('inf'):
-                h2 += self.new_matrix[now[0][0]][i]
-        if self.lower < (self.minuses + now[1]):
-            self.s.append(now[0])
-            for i in range(self.num_of_towns):
-                self.matrix[i][now[0][1]] = np.float('inf')
-                self.matrix[now[0][0]][i] = np.float('inf')
-            self.matrix[now[0][0]][now[0][1]] = np.float('inf')
+            if new_matrix[i][now[0][1]] != np.float('inf'):
+                h1 += new_matrix[i][now[0][1]]
+            if new_matrix[now[0][0]][i] != np.float('inf'):
+                h2 += new_matrix[now[0][0]][i]
+        self.s.append(now[0])
+        self.lower = minuses
+        for i in range(self.num_of_towns):
+            self.matrix[i][now[0][1]] = np.float('inf')
+            self.matrix[now[0][0]][i] = np.float('inf')
+        self.matrix[now[0][0]][now[0][1]] = np.float('inf')
 
     def f(self, s):
         """
