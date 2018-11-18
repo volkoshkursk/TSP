@@ -23,6 +23,7 @@ class TSP:
         self.matrix = matrix
         self.num_of_towns = num_of_towns
         self.s = []
+        self.s_cost = 0
         self.discarded = []
         s = [i for i in range(num_of_towns)]
         s.append(0)
@@ -52,13 +53,12 @@ class TSP:
         :return: список всех подмаршрутов имеющегося маршрута
         """
         if s is None:
-            s = self.s
+            s = copy(self.s)
         else:
-            s = [s] + self.s
+            s = [s] + copy(self.s)
         for i in s:
             for j in s:
-                if i[1] == j[0] and not((i[1], j[0]) in set(s)):
-
+                if i[1] == j[0] and not ((i[1], j[0]) in set(s)):
                     s.append((i[0], j[1]))
         s += list(map(lambda x: (x[1], x[0]), s))
         return s
@@ -82,12 +82,15 @@ class TSP:
         left_matrix = np.array([[self.matrix[j][i] for i in left] for j in left])
         self.lower = sum(left_matrix.min(axis=1))
 
-    def __staff_matrix(self):
+    def __staff_matrix(self, matrix=None):
         """
         матрица С"
         список координат с нулями и разность
         """
-        new_matrix = self.matrix
+        if matrix is None:
+            new_matrix = copy(self.matrix)
+        else:
+            new_matrix = matrix
         nulls = []
         m1 = new_matrix.min(axis=1)
         for i in range(self.num_of_towns):
@@ -120,13 +123,13 @@ class TSP:
                   min(np.concatenate((new_matrix[i[0], :i[1]], new_matrix[i[0], i[1] + 1:])))
             if now[1] < res:
                 now = (i, res)
-#        h1 = 0
-#        h2 = 0
-#        for i in range(self.num_of_towns):
-#            if new_matrix[i][now[0][1]] != np.float('inf'):
-#                h1 += new_matrix[i][now[0][1]]
-#            if new_matrix[now[0][0]][i] != np.float('inf'):
-#                h2 += new_matrix[now[0][0]][i]
+        #        h1 = 0
+        #        h2 = 0
+        #        for i in range(self.num_of_towns):
+        #            if new_matrix[i][now[0][1]] != np.float('inf'):
+        #                h1 += new_matrix[i][now[0][1]]
+        #            if new_matrix[now[0][0]][i] != np.float('inf'):
+        #                h2 += new_matrix[now[0][0]][i]
         temp_m = copy(new_matrix)
         for i in range(self.num_of_towns):
             temp_m[i][now[0][1]] = np.float('inf')
@@ -135,19 +138,26 @@ class TSP:
         temp_m[now[0][1]][now[0][0]] = np.float('inf')
         for i in self.__generate_latent_ways(now[0]):
             temp_m[i[0]][i[1]] = np.float('inf')
-        lower_with = minuses + self.__score(temp_m)
+        temp_m, _, lower_with = self.__staff_matrix(temp_m)
+        lower_with += minuses
+        #        lower_with = minuses + self.__score(temp_m)
         if (minuses + now[1]) > lower_with:
-            self.s.append(now[0])
-            self.lower = lower_with
+            self.s.append(copy(now[0]))
             self.matrix = copy(temp_m)
-            self.discarded.append((self.s + [None], minuses + now[1]))
-            del temp_m, new_matrix, nulls
+            self.discarded.append((self.s + [None], self.s_cost + minuses + now[1]))
+            self.s_cost += lower_with
+            del temp_m, new_matrix, nulls, now
         else:
             del temp_m
-            self.discarded.append((self.s + [now[0]], lower_with))
-            self.matrix = copy(new_matrix)
+            for i in self.__generate_latent_ways():
+                new_matrix[i[0]][i[1]] = np.float('inf')
+            new_matrix[now[0][0]][now[0][1]] = np.float('inf')
+            self.discarded.append((self.s + [now[0]], self.s_cost + lower_with))
+            self.s_cost += minuses + now[1]
+            self.matrix, _, _ = self.__staff_matrix(new_matrix)
             del new_matrix
             self.matrix[now[0][0]][now[0][1]] = np.float('inf')
+            del now
 
     def f(self, s):
         """
