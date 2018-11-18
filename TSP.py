@@ -31,6 +31,13 @@ class TSP:
         self.__lower_bound__(s)
         while not (self.__check()):
             self.__variants(self.__staff_matrix())
+        m = min(self.discarded, key=lambda x: x[1])
+        if not(m[1] > self.s_cost):
+            self.matrix = copy(m[2])
+            self.s = copy(m[0])
+            self.s_cost = m[1]
+            while not (self.__check()):
+                self.__variants(self.__staff_matrix())
 
     def __score(self, matrix):
         """
@@ -58,7 +65,7 @@ class TSP:
             s = [s] + copy(self.s)
         for i in s:
             for j in s:
-                if i[1] == j[0] and not ((i[1], j[0]) in set(s)):
+                if i[1] == j[0] and not ((i[1], j[0]) in set(s)) and i[1] != 0:
                     s.append((i[0], j[1]))
         s += list(map(lambda x: (x[1], x[0]), s))
         return s
@@ -141,18 +148,18 @@ class TSP:
         temp_m, _, lower_with = self.__staff_matrix(temp_m)
         lower_with += minuses
         #        lower_with = minuses + self.__score(temp_m)
+        for i in self.__generate_latent_ways():
+            new_matrix[i[0]][i[1]] = np.float('inf')
+        new_matrix[now[0][0]][now[0][1]] = np.float('inf')
         if (minuses + now[1]) > lower_with:
             self.s.append(copy(now[0]))
             self.matrix = copy(temp_m)
-            self.discarded.append((self.s + [None], self.s_cost + minuses + now[1]))
+            self.discarded.append((copy(self.s), self.s_cost + minuses + now[1], copy(new_matrix)))
             self.s_cost += lower_with
             del temp_m, new_matrix, nulls, now
         else:
+            self.discarded.append((copy(self.s) + [copy(now[0])], self.s_cost + lower_with, copy(temp_m)))
             del temp_m
-            for i in self.__generate_latent_ways():
-                new_matrix[i[0]][i[1]] = np.float('inf')
-            new_matrix[now[0][0]][now[0][1]] = np.float('inf')
-            self.discarded.append((self.s + [now[0]], self.s_cost + lower_with))
             self.s_cost += minuses + now[1]
             self.matrix, _, _ = self.__staff_matrix(new_matrix)
             del new_matrix
@@ -182,7 +189,7 @@ class TSP:
         return len(si) == self.num_of_towns and len(so) == self.num_of_towns
 
     def show(self):
-        return self.s
+        return str(self.s) + '\n' + str(self.s_cost)
 
 
 if __name__ == '__main__':
