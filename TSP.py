@@ -29,9 +29,9 @@ class TSP:
         self.__high_bound__(s)
         self.__lower_bound__(s)
         while not (self.__check()):
-            self.__variants__(self.__staff_matrix())
+            self.__variants(self.__staff_matrix())
 
-    def __score__(self, matrix):
+    def __score(self, matrix):
         """
         оценка "вычетов" матрицы
         """
@@ -43,6 +43,25 @@ class TSP:
             if m1[i] == np.float('inf'):
                 m1[i] = 0
         return sum(m0) + sum(m1)
+
+    def __generate_latent_ways(self, s=None):
+        """
+        костыльный метод вычисления подмаршрутов (в каких городах побывали)
+        буду благодарен получить альтернативные решения этой проблемы
+        :param s: новая точка маршрута
+        :return: список всех подмаршрутов имеющегося маршрута
+        """
+        if s is None:
+            s = self.s
+        else:
+            s = [s] + self.s
+        for i in s:
+            for j in s:
+                if i[1] == j[0] and not((i[1], j[0]) in set(s)):
+
+                    s.append((i[0], j[1]))
+        s += list(map(lambda x: (x[1], x[0]), s))
+        return s
 
     def __high_bound__(self, left):
         """
@@ -88,7 +107,7 @@ class TSP:
                     nulls.append((i, j))
         return new_matrix, nulls, sum(m0) + sum(m1)
 
-    def __variants__(self, arg):
+    def __variants(self, arg):
         """
         основная функция
         :param arg: функция __staff_matrix
@@ -101,20 +120,22 @@ class TSP:
                   min(np.concatenate((new_matrix[i[0], :i[1]], new_matrix[i[0], i[1] + 1:])))
             if now[1] < res:
                 now = (i, res)
-        h1 = 0
-        h2 = 0
-        for i in range(self.num_of_towns):
-            if new_matrix[i][now[0][1]] != np.float('inf'):
-                h1 += new_matrix[i][now[0][1]]
-            if new_matrix[now[0][0]][i] != np.float('inf'):
-                h2 += new_matrix[now[0][0]][i]
+#        h1 = 0
+#        h2 = 0
+#        for i in range(self.num_of_towns):
+#            if new_matrix[i][now[0][1]] != np.float('inf'):
+#                h1 += new_matrix[i][now[0][1]]
+#            if new_matrix[now[0][0]][i] != np.float('inf'):
+#                h2 += new_matrix[now[0][0]][i]
         temp_m = copy(new_matrix)
         for i in range(self.num_of_towns):
             temp_m[i][now[0][1]] = np.float('inf')
             temp_m[now[0][0]][i] = np.float('inf')
         #        temp_m[now[0][0]][now[0][1]] = np.float('inf')
         temp_m[now[0][1]][now[0][0]] = np.float('inf')
-        lower_with = minuses + self.__score__(temp_m)
+        for i in self.__generate_latent_ways(now[0]):
+            temp_m[i[0]][i[1]] = np.float('inf')
+        lower_with = minuses + self.__score(temp_m)
         if (minuses + now[1]) > lower_with:
             self.s.append(now[0])
             self.lower = lower_with
