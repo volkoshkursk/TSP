@@ -29,7 +29,6 @@ class TSP:
         s.append(0)
         self.__high_bound__(s)
         self.__lower_bound__(s)
-        print("1) Test before loop:", self.s)
         while not (self.__check()):
             self.__variants(self.__staff_matrix())
         m = min(self.discarded, key=lambda x: x[1])
@@ -39,6 +38,7 @@ class TSP:
             self.s_cost = m[1]
             while not (self.__check()):
                 self.__variants(self.__staff_matrix())
+        self.__check_unique(self.matrix)
 
     def __score(self, matrix):
         """
@@ -64,13 +64,11 @@ class TSP:
             s = copy(self.s)
         else:
             s = [s] + copy(self.s)
-        #print("5) Test in __generate_latent_ways: ", s)
         for i in s:
             for j in s:
                 if i[1] == j[0] and not ((i[1], j[0]) in set(s)) and i[1] != 0:
                     s.append((i[0], j[1]))
         s += list(map(lambda x: (x[1], x[0]), s))
-        print("6) Test in __generate_latent_ways: ", s)
         return s
 
     def __high_bound__(self, left):
@@ -82,7 +80,6 @@ class TSP:
         s = [i for i in left]
         s.append(0)
         self.high = self.f(s)
-        print("2) Test in __high_bound__", self.high)
 
     def __lower_bound__(self, left):
         """
@@ -92,7 +89,6 @@ class TSP:
         """
         left_matrix = np.array([[self.matrix[j][i] for i in left] for j in left])
         self.lower = sum(left_matrix.min(axis=1))
-        print("3) Test in __lower_bound__", self.lower)
 
     def __staff_matrix(self, matrix=None):
         """
@@ -187,11 +183,15 @@ class TSP:
         """
         si = set()
         so = set()
-        print("4) Test in __check:", len(self.s))
         for i in self.s:
             si.add(i[0])
             so.add(i[1])
         return len(si) == self.num_of_towns and len(so) == self.num_of_towns
+
+    def __check_unique(self, matrix):
+    	m0 = matrix.min(axis = 0)
+    	if min(m0) == np.float("inf"):
+    		print("Way is unique")
 
     def show(self):
         return str(self.s) + '\n' + str(self.s_cost)
