@@ -29,6 +29,7 @@ class TSP:
         s.append(0)
         self.__high_bound__(s)
         self.__lower_bound__(s)
+        print("1) Test before loop:", self.s)
         while not (self.__check()):
             self.__variants(self.__staff_matrix())
         m = min(self.discarded, key=lambda x: x[1])
@@ -63,11 +64,13 @@ class TSP:
             s = copy(self.s)
         else:
             s = [s] + copy(self.s)
+        #print("5) Test in __generate_latent_ways: ", s)
         for i in s:
             for j in s:
                 if i[1] == j[0] and not ((i[1], j[0]) in set(s)) and i[1] != 0:
                     s.append((i[0], j[1]))
         s += list(map(lambda x: (x[1], x[0]), s))
+        print("6) Test in __generate_latent_ways: ", s)
         return s
 
     def __high_bound__(self, left):
@@ -79,6 +82,7 @@ class TSP:
         s = [i for i in left]
         s.append(0)
         self.high = self.f(s)
+        print("2) Test in __high_bound__", self.high)
 
     def __lower_bound__(self, left):
         """
@@ -88,33 +92,29 @@ class TSP:
         """
         left_matrix = np.array([[self.matrix[j][i] for i in left] for j in left])
         self.lower = sum(left_matrix.min(axis=1))
+        print("3) Test in __lower_bound__", self.lower)
 
     def __staff_matrix(self, matrix=None):
         """
         матрица С"
         список координат с нулями и разность
         """
+        def check_inf(a): return 0 if a == np.float('inf') else a
+
         if matrix is None:
             new_matrix = copy(self.matrix)
         else:
             new_matrix = matrix
-        nulls = []
+
         m1 = new_matrix.min(axis=1)
-        for i in range(self.num_of_towns):
-            if m1[i] == np.float('inf'):
-                m1[i] = 0
-        for i in range(self.num_of_towns):
-            for j in range(self.num_of_towns):
-                new_matrix[i][j] -= m1[i]
+        m1 = np.array(list(map(check_inf, m1)))
+        new_matrix = (new_matrix.T - m1).T
+
         m0 = new_matrix.min(axis=0)
-        for i in range(self.num_of_towns):
-            if m0[i] == np.float('inf'):
-                m0[i] = 0
-        for i in range(self.num_of_towns):
-            for j in range(self.num_of_towns):
-                new_matrix[i][j] -= m0[j]
-                if new_matrix[i][j] == 0:
-                    nulls.append((i, j))
+        m0 = np.array(list(map(check_inf, m0)))
+        new_matrix = new_matrix - m0
+
+        nulls = list(map(lambda x: (x[0], x[1]), np.argwhere(new_matrix == 0)))
         return new_matrix, nulls, sum(m0) + sum(m1)
 
     def __variants(self, arg):
@@ -137,20 +137,24 @@ class TSP:
         #                h1 += new_matrix[i][now[0][1]]
         #            if new_matrix[now[0][0]][i] != np.float('inf'):
         #                h2 += new_matrix[now[0][0]][i]
+
         temp_m = copy(new_matrix)
         for i in range(self.num_of_towns):
             temp_m[i][now[0][1]] = np.float('inf')
             temp_m[now[0][0]][i] = np.float('inf')
         #        temp_m[now[0][0]][now[0][1]] = np.float('inf')
         temp_m[now[0][1]][now[0][0]] = np.float('inf')
+
         for i in self.__generate_latent_ways(now[0]):
             temp_m[i[0]][i[1]] = np.float('inf')
         temp_m, _, lower_with = self.__staff_matrix(temp_m)
         lower_with += minuses
         #        lower_with = minuses + self.__score(temp_m)
+
         for i in self.__generate_latent_ways():
             new_matrix[i[0]][i[1]] = np.float('inf')
         new_matrix[now[0][0]][now[0][1]] = np.float('inf')
+        
         if (minuses + now[1]) > lower_with:
             self.s.append(copy(now[0]))
             self.matrix = copy(temp_m)
@@ -183,6 +187,7 @@ class TSP:
         """
         si = set()
         so = set()
+        print("4) Test in __check:", len(self.s))
         for i in self.s:
             si.add(i[0])
             so.add(i[1])
